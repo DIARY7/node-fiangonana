@@ -8,6 +8,7 @@ class Mpino {
     async getAllMpino(con){
         
         const res = await con.query("SELECT * FROM Mpino");
+        
         return res.rows;
     }
     
