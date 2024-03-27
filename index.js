@@ -21,41 +21,60 @@ app.use(cors());
 app.listen(5033,()=>{
     console.log("Serveur is online");
 })
+// const mymoment = moment('2024-02-26','YYYY-MM-DD');
+// let mois1 = mymoment.month(); 
+// const mymoment1 = mymoment.add(7,"days");
+// let mois2 = mymoment1.month();
+// console.log("mois 1 " + mois1);
+// console.log("mois 2 " + mois2);
+//console.log( "L'index du mois:  "+ mymoment.month());
+//console.log( "L'index du mois1:  "+ mymoment1.month());
 
-let sql = "SELECT * FROM alahady where daty = $1";
-let date = moment('2023-04-02', 'YYYY-MM-DD');
-console.log(date.toDate());
-let param=[date.toDate()];
-connectBD.query(sql,param,(err,res)=>{
-    console.log("Valiny:    ");
-    console.log(res.rows);
-})
+// let sql = "SELECT * FROM alahady where daty = $1";
+// let date = moment('2023-04-02', 'YYYY-MM-DD');
+// console.log(date.toDate());
+// let param=[date.toDate()];
+// connectBD.query(sql,param,(err,res)=>{
+//     console.log("Valiny:    ");
+//     console.log(res.rows);
+// })psql
 
 /* Mandefa */ 
 app.get("/api/getListMpino",(req,res)=>{
     let Mpino = new mpino();
     (async()=>{
-        console.log("Nande tato n*man***************");
         let list_mpino = await Mpino.getAllMpino(connectBD);
-        console.log(list_mpino);
         res.send(list_mpino);
     })();
     
 })
-app.get("/api/getListDemande",(err,res)=>{
-    connectBD.connect().query("Select * from demande",(err1,res1)=>{
+app.get("/api/getListDemande",(req,res)=>{
+    (async()=>{
+        let res1 = await connectBD.query("Select  id_mpino,TO_CHAR(date_demande,'YYYY-MM-DD') as date_demande from demande");
         res.send(res1.rows);
-    });
+    } )();
 });
-app.get("/api/getListCarnet",(err,res)=>{
-    //let con = connectBD;
+app.get("/api/getListRemboursement",(req,res)=>{
+    (async()=>{
+        let res1 = await connectBD.query("Select  id_mpino,TO_CHAR(alahady_debut,'YYYY-MM-DD') as alahady_debut, TO_CHAR(alahady_farany,'YYYY-MM-DD') as alahady_farany , montant from remboursement");
+        res.send(res1.rows);
+    } )();
+})
+app.get("/api/getListCarnet",(req,res)=>{
+    
     (async()=>{
 
         let Alahady = new alahady();
         let Echance = new echeance();
-        let caisse = Alahady.getCaisseFiangonana(connectBD,1);
-        let carnets = Echance.liste_echeance(connectBD);
-        let data={"caisse":caisse,"carnets":carnets};
+        let caisse = await Alahady.getCaisseFiangonana(connectBD,1);
+        let carnets = await Echance.liste_echeance(connectBD);
+        // for (let i = 0; i < carnets.length; i++) {
+        //     console.log("mpino carnet : "+carnets[i].echeance.idMpino);
+        // }
+        let carnetStringifie = JSON.stringify(carnets);
+        let data={"caisse":caisse,"carnets":carnetStringifie};
+        
+        
         res.send(data);
         
     })();
@@ -63,15 +82,16 @@ app.get("/api/getListCarnet",(err,res)=>{
 
 /* Mandray */
 app.post("/api/sendFampindramana",(req,res)=>{
-    const formData = req.body;
-    let Alahady = new alahady();
     (async()=>{
         try {
-            await Alahady.setPrediction(formData.id,formData.daty,formData.somme);
+            const formData = req.body;
+            let Alahady = new alahady();
+            await Alahady.setPrediction(formData.id,formData.daty,formData.somme,formData.nbMoisR);
             res.json("Nety tsara le insertion");
             console.log(req.body);
         } catch (error) {
-            res.json(error);
+            console.log(error);
+            res.json(error.message);
         }
     })();
     

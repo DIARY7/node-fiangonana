@@ -1,3 +1,4 @@
+const moment = require("moment");
 class Echeance {
     constructor(nomMpino, idMpino, dateDebut, dateEcheance) {
         this._nomMpino = nomMpino;
@@ -6,28 +7,29 @@ class Echeance {
         this._dateEcheance = dateEcheance;
     }
 
-    liste_echeance(con){
+    async liste_echeance(con){
 
-        let sql = "SELECT * from v_echeance";
-        let sql2="SELECT daty,rakitra FROM prediction where id_mpino =?";
+        let sql = "SELECT nom ,id_mpino , TO_CHAR(date_echeance,'YYYY-MM-DD') as date_echeance  , TO_CHAR(date_debut,'YYYY-MM-DD') as date_debut from v_echeance";
+        let sql2="SELECT fahafiry,rakitra FROM prediction where id_mpino =$1";
         let liste_carnet=[]
-        con.query(sql,(err,res)=>{
-            let list_echeance = res.rows;
+        let res = await con.query(sql);
+        let list_echeance = res.rows;
             for (let i = 0; i < list_echeance.length; i++) {
                 let param = [list_echeance[i].id_mpino];
                 let list_predict=[];
-                con.query(sql2,param,(err2,res2)=>{
+                let res2 = await con.query(sql2,param)
                     let predictions = res2.rows;
                     for (let i = 0; i < predictions.length; i++) {
-                        list_predict[i]={"daty":predictions[i].daty,"rakitra":predictions[i].rakitra};
+                        list_predict[i]={"fahafiry":predictions[i].fahafiry,"rakitra":predictions[i].rakitra};
                     }
-                })
-                let echeance = new Echance(list_echeance.nom, list_echeance.id_mpino, list_echeance.date_debut, list_echeance.date_echeance);
-                carnet = CarnetMpino(echeance, list_predict);
-                liste_carnet.append(carnet)
+                
+                let echeance = new Echeance(list_echeance[i].nom, list_echeance[i].id_mpino, list_echeance[i].date_debut , list_echeance[i].date_echeance);
+                let carnet = new  CarnetMpino(echeance, list_predict);
+                
+                liste_carnet.push(carnet);
             }
-        })
         
+        return liste_carnet;
     }
 
     // Setter pour l'attribut nomMpino

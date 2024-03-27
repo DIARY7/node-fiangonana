@@ -11,7 +11,7 @@ class Alahady{
         
     }
     // Fonction base
-    async setPrediction(idMpino, datyNanontany, montant){
+    async setPrediction(idMpino, datyNanontany, montant,nbMoisR){
         //const con =  await connectDB;
         //con.query('BEGIN')   
 
@@ -28,25 +28,32 @@ class Alahady{
         }
 
         let variation = await this.getVariation(connectDB,dateNanontany);
-        let daty_debut_ech = dateNanontany;
+        let daty_debut_ech = datyNanontany;
         let last_alahady = new Alahady();
-        let caisse = await this.getCaisseFiangonana(connectDB,1);
-        let isCaisseAmpy = true;
+        let caisse = Number(await this.getCaisseFiangonana(connectDB,1)) ;
+        
+        
         if ( await this.isAfterSomeone(connectDB,dateNanontany) &&  ! await this.isAfterEcheance(connectDB,dateNanontany)){
             last_alahady = await this.getAlahadyDepart(connectDB);
-            daty_debut_ech = last_alahady.daty;
-            
+            let temp_alahady = last_alahady.daty.add(1,'days');
+            daty_debut_ech = temp_alahady.toDate();
+            last_alahady.daty = last_alahady.daty.subtract(1,'days');
+            console.log("Alahady farany id Mpino = "+idMpino+"  alahady farany : "+last_alahady.daty.toDate() + " fahafiry" + last_alahady.fahafiry);
         } 
             
         else{
             last_alahady = await this.getAlahadyFaranyBeforeDemande(connectDB,dateNanontany);
+            
         }
-        
+        console.log("La variation globale : "+variation);
         let result = await this.setPredictAlahady(connectDB,caisse,montant,idMpino,last_alahady,variation);       
         
+        /* //Le  */
+
         await this.update_caisse(connectDB,1,result["reste"]);
-        await this.putInEcheance(connectDB, idMpino, datyNanontany,result['date'],result['isCaisseAmpy']);
+        await this.putInEcheance(connectDB, idMpino, daty_debut_ech,result['date'],result['isCaisseAmpy']);
         await this.insertDemande(connectDB,idMpino,dateNanontany);
+        await this.setRembousement(connectDB,idMpino,montant,nbMoisR);
         //con.query('COMMIT');
     
     }
@@ -72,44 +79,51 @@ class Alahady{
         for (let i = 0; i < alahadyCurrent.length; i++) {
             let somme = 0;
             let compte = 0;
-            let tempYear = year_demande;
+            let tempYear = year_demande-1;
             while (tempYear>=2022) {
                 let tempParam=[alahadyCurrent[i].fahafiry,tempYear];
                 let res2 = await con.query(sql2,tempParam);
-                console.log(res2.rows);
-                somme+= res2.rows[0].rakitra;
+                
+                somme+= Number(res2.rows[0].rakitra);
                 compte++;
                 tempYear--;
             }
             let moyenne = somme/compte;
             let rakitra_predit = moyenne*variation;
-            caisse+=rakitra_predit;
             date_temp = date_temp.add(7,'days');
-            await this.insertInPredict(con,idMpino,alahadyCurrent[i].fahafiry,date_temp.toDate(),rakitra_predit);
-            if (caisse>=montant) {
-                let reste = caisse-montant;
+            caisse+=Number(rakitra_predit);
+            if (this.isAlahadyFinDuMois(date_temp)) {
+                caisse+= await this.montantRembourse(con,date_temp);
+            }
+            
+            await this.insertInPredict(con,idMpino,alahadyCurrent[i].fahafiry,date_temp.toDate(),Number(rakitra_predit));
+            if (Number(caisse) >= Number(montant)) {
+                let reste = Number(caisse)-Number(montant);
+                console.log( "Alahady retournen'i 2025 "+ date_temp.toDate());
                 let result = {"reste":reste,"date":date_temp,"isCaisseAmpy":false};
                 return result;
             }
         }
-
+        date_temp = date_temp.add(7,'days');
+       // console.log("daty farany t@ 2025 :"+ date_temp.toDate())
         // Raha tonga annee prochaine
-        return await this.setPredictCompleteMontant(con,caisse,montant,idMpino,date_temp,variation,date_temp.year(),fahafiry_demande,date_temp.year());
+        return await this.setPredictCompleteMontant(con,caisse,montant,idMpino,date_temp,variation,date_temp.year()-1,fahafiry_demande,date_temp.year());
     }
     async setPredictCompleteMontant(con,caisse,montant,idMpino,date,variation,annee_demande,fahafiry_demande,annee_courante){
-        if (caisse>=montant) {
-            let reste = caisse-montant;
+        console.log("nandalo tato @ "+annee_courante);
+        if (Number(caisse) >= Number(montant)) {
+            let reste = Number(caisse)-Number(montant);
             let result = {"reste":reste,"date":date,"isCaisseAmpy":false};
             return result;
         }
         let fahafiry = 1; //logiquement manomboka @1
         let date_temp = date;//Objet moment
         //
-        let sql_predict_vola = "SELECT * from prediction where fahafiry = $1  and EXTRACT( YEAR from daty)= $2 and id_mpino = $3";
+        let sql_predict_vola = "SELECT * from prediction where fahafiry = $1  and EXTRACT( YEAR from daty)= $2";
         let sql_tena_vola = "SELECT * from alahady where fahafiry = $1  and EXTRACT( YEAR from daty)= $2";
         while (date_temp.year()==annee_courante) {
             
-            let tempYear = annee_courante;
+            let tempYear = annee_courante-1;
             let somme = 0;
             let compte = 0;
 
@@ -119,26 +133,26 @@ class Alahady{
                     if (fahafiry<=fahafiry_demande) {
                         let param = [fahafiry,tempYear];
                         let res = await con.query(sql_tena_vola,param);
-                        somme+= res.rows[0].rakitra;
+                        somme+= Number(res.rows[0].rakitra);
                         compte++;
                     }
                     else{
-                        let param = [fahafiry,tempYear,idMpino];
+                        let param = [fahafiry,tempYear];
                         let res = await con.query(sql_predict_vola,param);
-                        somme+= res.rows[0].rakitra;
+                        somme+= Number(res.rows[0].rakitra);
                         compte++;
                     }
                 }
                 else if (tempYear<annee_demande) {
                     let param = [fahafiry,tempYear];
                     let res = await con.query(sql_tena_vola,param);
-                    somme+= res.rows[0].rakitra;
+                    somme+= Number(res.rows[0].rakitra);
                     compte++;
                 }
                 else if (tempYear>annee_demande) {
-                    let param = [fahafiry,tempYear,idMpino];
+                    let param = [fahafiry,tempYear];
                     let res = await con.query(sql_predict_vola,param);
-                    somme+= res.rows[0].rakitra;
+                    somme+= Number(res.rows[0].rakitra);
                     compte++;
                 }
 
@@ -147,20 +161,71 @@ class Alahady{
 
             let moyenne = somme/compte;
             let rakitra_predit = moyenne*variation;
-            caisse+=rakitra_predit;
-            date_temp = date_temp.add(7,'days');
+            caisse+= Number(rakitra_predit) ;
+            if (this.isAlahadyFinDuMois(date_temp)) {
+                caisse+= await this.montantRembourse(con,date_temp);
+            }
             
-            await this.insertInPredict(con,idMpino,fahafiry,date_temp.toDate(),rakitra_predit);
-            fahafiry++;
-            if (caisse>=montant) {
-                let reste = caisse-montant;
+            await this.insertInPredict(con,idMpino,fahafiry,date_temp.toDate(),Number(rakitra_predit));
+            
+            if ( Number(caisse) >= Number(montant) ) {
+                let reste = Number(caisse)-Number(montant);
                 let result = {"reste":reste,"date":date_temp,"isCaisseAmpy":false};
                 return result;
                 
             }
+
+            date_temp = date_temp.add(7,'days');
+            fahafiry+=1;
+            console.log(fahafiry);
         }
         return await this.setPredictCompleteMontant(con,caisse,montant,idMpino,date_temp,variation,annee_demande,fahafiry_demande,annee_courante+1);
 
+    }
+
+    //Misy remboursement
+    isAlahadyFinDuMois(dateALahady){
+        let mois1 = dateALahady.month();
+        let alahadyManaraka = dateALahady.clone();
+        alahadyManaraka = alahadyManaraka.add(7,"days");
+        let mois2 = alahadyManaraka.month();
+        if ( mois1 != mois2) {
+            return true;
+        }
+        return false;
+    }
+    async montantRembourse(con,dateALahady){
+        let sql = "SELECT sum(montant) as somme from remboursement WHERE $1 >= alahady_debut and $2<= alahady_farany ";
+        let param = [dateALahady.toDate(),dateALahady.toDate()];
+        let res = await con.query(sql,param);
+        return Number(res.rows[0].somme);
+    }
+
+    async setRembousement(con,id_mpino,montant,nbMois){
+        let montantParMois = Number(montant)/Number(nbMois);
+        let sql = "SELECT date_echeance from echeance where id_mpino = $1"
+        let param = [id_mpino];
+        let res = await con.query(sql,param);
+        let alahady = moment(res.rows[0].date_echeance,"YYYY-MM-DD").subtract(1,"days");// D ito ko
+        let alahady_debut=alahady.add(7,"days"); // Tonga dia tsy misy an'ito raha manomboka alahady
+        while (!this.isAlahadyFinDuMois(alahady_debut)) {
+            alahady_debut=alahady_debut.add(7,"days");
+            console.log( "Maka alahady debut:   "+ alahady_debut);
+        }
+        let tena_alahady_debut = alahady_debut.clone();
+        let alahady_farany = alahady_debut.add(7,"days");
+        let compteMois = 0;
+        while (compteMois<nbMois) {
+            alahady_farany=alahady_farany.add(7,"days");
+            if(this.isAlahadyFinDuMois(alahady_farany)) {
+                compteMois++;
+                
+            }   
+        }
+        
+        let insert ="INSERT INTO remboursement(id_mpino,alahady_debut,alahady_farany,montant) VALUES ($1,$2,$3,$4)";
+        let param1 = [id_mpino,tena_alahady_debut.toDate(),alahady_farany.toDate(),montantParMois];
+        await con.query(insert,param1);
     }
 
     //
@@ -178,7 +243,6 @@ class Alahady{
     async isAcceptable(con,date){
         let sql = "Select * from demande where date_demande > $1 "
         let param = [date.toDate()];
-        console.log("date   "+date.toDate());
         const res = await con.query(sql,param)
         if (res.rows.length!=0) {
             throw new Error("Vous ne pouvez effectuer un prêt avant un pret precedent");
@@ -192,36 +256,40 @@ class Alahady{
 
         let sql_present = "SELECT fahafiry,rakitra,daty from alahady where daty < $1 and EXTRACT( YEAR from daty)= $2 ORDER BY fahafiry ";
         let sql_precedent = 'SELECT fahafiry,rakitra,daty from alahady where fahafiry = $1  and EXTRACT( YEAR from daty)= $2 ORDER BY fahafiry ';
-        const param1 = [dateNanontany,dateNanontany.year()];
+        const param1 = [dateNanontany.toDate(),dateNanontany.year()];
         const res = await con.query(sql_present,param1);
         let alahadyCurrent = res.rows; //Alahady mi-existe misy rakitra en 2024
-       
         for (let i = 0; i < alahadyCurrent.length; i++) {
                 //Mi calcule moyenne
                 let somme = 0;
                 let compte = 0;
-                let tempYear = dateNanontany.year();
+                let tempYear = dateNanontany.year()-1;
                 while (tempYear>=2022) {
+                    console.log("Temp year : "+tempYear);
                     let tempParam=[alahadyCurrent[i].fahafiry,tempYear];
                     let res2 = await con.query(sql_precedent,tempParam);
                     
-                    somme+= res2.rows[0].rakitra;
+                    somme+= Number(res2.rows[0].rakitra) ;
                     compte++;
                     tempYear--;
+                    
                 }
                 let moyenne = somme / compte;
-                let variation = alahadyCurrent[i].rakitra / moyenne;
+                let variation = Number(alahadyCurrent[i].rakitra) / moyenne;
                 listVariation.push(variation);
             }
         let sum=0;
+        console.log("Somme des variations");
         for (let i = 0; i < listVariation.length; i++) {
-            sum+= listVariation[i];
+            console.log(listVariation[i]);
+            sum+= Number(listVariation[i]);
         }
-        let variationGlobal = sum/listVariation.length;
+        console.log("Reo ambony reo");
+        let variationGlobal = Number(sum/listVariation.length);
         return variationGlobal;
     }
     async insertInPredict(con,idMpino,fahafiry,daty,rakitra){
-        console.log("Ny inserer prediciton");
+        
         let insert = "INSERT INTO prediction(id_mpino,fahafiry,daty,rakitra) VALUES ($1,$2,$3,$4)";
         const param = [idMpino,fahafiry,daty,rakitra];
         
@@ -264,20 +332,22 @@ class Alahady{
         await con.query(update,param);
         
     }
-    async getAlahadyDepart(con){
+    async getAlahadyDepart(con){ //Mbola tsy mandray raha 2025 ny farany (mila manao alahady misy)
 
         let sql1 = "SELECT max(date_echeance) as date_depart from echeance "
         let sql2 = "SELECT fahafiry,daty from Alahady where daty = $1 "
         
         let res = await con.query(sql1);
         let date_depart = res.rows[0].date_depart;
-        let param2 = [date_depart.toString()];
+        let obj_date_depart = moment(date_depart,'YYYY-MM-DD');
+        obj_date_depart = obj_date_depart.subtract(1,"days");
+        let param2 = [obj_date_depart.toDate()];
 
-        let res2= await con.query(sql1,param2);
-        let temp_daty = moment(res2.rows[0].daty,"YYYY-MM-DD");
-        temp_daty = temp_daty.subtract(1,"days");
+        let res2= await con.query(sql2,param2);
+        
         let alahady_depart = new Alahady();
-        alahady_depart.constructor_init(res2.rows[0].fahafiry,temp_daty,res2.rows[0].rakitra);
+        alahady_depart.constructor_init(res2.rows[0].fahafiry,obj_date_depart,res2.rows[0].rakitra);
+        
         return alahady_depart;
     }
 
@@ -302,9 +372,10 @@ class Alahady{
             param=[idMpino,dateDebut,dateDebut];
         }
         else{
-            console.log("Date echeance avant = "+dateEcheance.toDate());
-            dateEcheance = dateEcheance.add(1,'days');
-            console.log("Date echeance apres : "+dateEcheance.toDate());
+            let sql ="SELECT daty FROM prediction order by daty DESC limit 1 ";
+            let res = await con.query(sql);
+            let dateEcheance = moment(res.rows[0].daty,"YYYY-MM-DD");
+            dateEcheance = dateEcheance.add(1,'days');    
             param = [idMpino,dateDebut,dateEcheance.toDate()];
         }
         await con.query(insert,param);

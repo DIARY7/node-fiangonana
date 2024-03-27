@@ -36,6 +36,14 @@ CREATE TABLE prediction(
     rakitra DECIMAL,
     Primary key(fahafiry,daty)
 );
+CREATE TABLE remboursement(
+    id_mpino int,
+    alahady_debut date,
+    alahady_farany date,
+    montant DECIMAL
+);
+
+
 
 INSERT INTO eglise VALUES(1,55600);
 
@@ -223,6 +231,60 @@ UPDATE alahady SET rakitra = 1890000.00 WHERE fahafiry = 10 AND EXTRACT (YEAR FR
 -- INSERT INTO alahady (fahafiry,daty,rakitra) VALUES(52,'2024-12-29',1200);
 -- go
 
+-- INSERT INTO alahady (fahafiry,daty,rakitra) VALUES(1,'2025-01-05',0);
+-- INSERT INTO alahady (fahafiry,daty,rakitra) VALUES(2,'2025-01-12',0);
+-- INSERT INTO alahady (fahafiry,daty,rakitra) VALUES(3,'2025-01-19',0);
+-- INSERT INTO alahady (fahafiry,daty,rakitra) VALUES(4,'2025-01-26',0);
+-- INSERT INTO alahady (fahafiry,daty,rakitra) VALUES(5,'2025-02-02',0);
+-- INSERT INTO alahady (fahafiry,daty,rakitra) VALUES(6,'2025-02-09',0);
+-- INSERT INTO alahady (fahafiry,daty,rakitra) VALUES(7,'2025-02-16',0);
+-- INSERT INTO alahady (fahafiry,daty,rakitra) VALUES(8,'2025-02-23',0);
+-- INSERT INTO alahady (fahafiry,daty,rakitra) VALUES(9,'2025-03-02',0);
+-- INSERT INTO alahady (fahafiry,daty,rakitra) VALUES(10,'2025-03-09',0);
+-- INSERT INTO alahady (fahafiry,daty,rakitra) VALUES(11,'2025-03-16',0);
+-- INSERT INTO alahady (fahafiry,daty,rakitra) VALUES(12,'2025-03-23',0);
+-- INSERT INTO alahady (fahafiry,daty,rakitra) VALUES(13,'2025-03-30',0);
+-- INSERT INTO alahady (fahafiry,daty,rakitra) VALUES(14,'2025-04-06',0);
+-- INSERT INTO alahady (fahafiry,daty,rakitra) VALUES(15,'2025-04-13',0);
+-- INSERT INTO alahady (fahafiry,daty,rakitra) VALUES(16,'2025-04-20',0);
+-- INSERT INTO alahady (fahafiry,daty,rakitra) VALUES(17,'2025-04-27',0);
+-- INSERT INTO alahady (fahafiry,daty,rakitra) VALUES(18,'2025-05-04',0);
+-- INSERT INTO alahady (fahafiry,daty,rakitra) VALUES(19,'2025-05-11',0);
+-- INSERT INTO alahady (fahafiry,daty,rakitra) VALUES(20,'2025-05-18',0);
+-- INSERT INTO alahady (fahafiry,daty,rakitra) VALUES(21,'2025-05-25',0);
+-- INSERT INTO alahady (fahafiry,daty,rakitra) VALUES(22,'2025-06-01',0);
+-- INSERT INTO alahady (fahafiry,daty,rakitra) VALUES(23,'2025-06-08',0);
+-- INSERT INTO alahady (fahafiry,daty,rakitra) VALUES(24,'2025-06-15',0);
+-- INSERT INTO alahady (fahafiry,daty,rakitra) VALUES(25,'2025-06-22',0);
+-- INSERT INTO alahady (fahafiry,daty,rakitra) VALUES(26,'2025-06-29',0);
+-- INSERT INTO alahady (fahafiry,daty,rakitra) VALUES(27,'2025-07-06',0);
+-- INSERT INTO alahady (fahafiry,daty,rakitra) VALUES(28,'2025-07-13',0);
+-- INSERT INTO alahady (fahafiry,daty,rakitra) VALUES(29,'2025-07-20',0);
+-- INSERT INTO alahady (fahafiry,daty,rakitra) VALUES(30,'2025-07-27',0);
+-- INSERT INTO alahady (fahafiry,daty,rakitra) VALUES(31,'2025-08-03',0);
+-- INSERT INTO alahady (fahafiry,daty,rakitra) VALUES(32,'2025-08-10',0);
+-- INSERT INTO alahady (fahafiry,daty,rakitra) VALUES(33,'2025-08-17',0);
+-- INSERT INTO alahady (fahafiry,daty,rakitra) VALUES(34,'2025-08-24',0);
+-- INSERT INTO alahady (fahafiry,daty,rakitra) VALUES(35,'2025-08-31',0);
+-- INSERT INTO alahady (fahafiry,daty,rakitra) VALUES(36,'2025-09-07',0);
+-- INSERT INTO alahady (fahafiry,daty,rakitra) VALUES(37,'2025-09-14',0);
+-- INSERT INTO alahady (fahafiry,daty,rakitra) VALUES(38,'2025-09-21',0);
+-- INSERT INTO alahady (fahafiry,daty,rakitra) VALUES(39,'2025-09-28',0);
+-- INSERT INTO alahady (fahafiry,daty,rakitra) VALUES(40,'2025-10-05',0);
+-- INSERT INTO alahady (fahafiry,daty,rakitra) VALUES(41,'2025-10-12',0);
+-- INSERT INTO alahady (fahafiry,daty,rakitra) VALUES(42,'2025-10-19',0);
+-- INSERT INTO alahady (fahafiry,daty,rakitra) VALUES(43,'2025-10-26',0);
+-- INSERT INTO alahady (fahafiry,daty,rakitra) VALUES(44,'2025-11-02',0);
+-- INSERT INTO alahady (fahafiry,daty,rakitra) VALUES(45,'2025-11-09',0);
+-- INSERT INTO alahady (fahafiry,daty,rakitra) VALUES(46,'2025-11-16',0);
+-- INSERT INTO alahady (fahafiry,daty,rakitra) VALUES(47,'2025-11-23',0);
+-- INSERT INTO alahady (fahafiry,daty,rakitra) VALUES(48,'2025-11-30',0);
+-- INSERT INTO alahady (fahafiry,daty,rakitra) VALUES(49,'2025-12-07',0);
+-- INSERT INTO alahady (fahafiry,daty,rakitra) VALUES(50,'2025-12-14',0);
+-- INSERT INTO alahady (fahafiry,daty,rakitra) VALUES(51,'2025-12-21',0);
+-- INSERT INTO alahady (fahafiry,daty,rakitra) VALUES(52,'2025-12-28',0);
+
+
 -- DROP TABLE  alahady CASCADE;
 -- DROP TABLE  mpino CASCADE;
 -- DROP TABLE  echeance CASCADE;
@@ -233,4 +295,8 @@ UPDATE alahady SET rakitra = 1890000.00 WHERE fahafiry = 10 AND EXTRACT (YEAR FR
 
 Delete from echeance;
 Delete from demande;
-UPDATE eglise set caisse=0 WHERE id = 1 ;
+Delete from prediction;
+Delete from remboursement;
+UPDATE eglise set caisse=0 WHERE id = 1;
+
+Delete from prediction where id_mpino = 1;
